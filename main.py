@@ -33,9 +33,9 @@ def check_url(request: URLRequest, db: Session = Depends(get_db)):
     log_entry = URLLog(
         url=result["url"],
         score=result["score"],
-        category=result["category"],
-        reasons=result["reasons"]
+        category=result["category"]
     )
+    log_entry.set_reasons(result["reasons"])
     db.add(log_entry)
     db.commit()
 
@@ -66,8 +66,12 @@ def get_logs(db: Session = Depends(get_db)):
             "url": log.url,
             "score": log.score,
             "category": log.category,
-            "reasons": log.reasons,
+            "reasons": log.get_reasons(),
             "timestamp": log.timestamp
         }
         for log in logs
     ]
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

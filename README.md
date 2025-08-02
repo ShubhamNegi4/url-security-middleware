@@ -1,4 +1,4 @@
-# 🧠 DeepSecure Proxy
+# 🧠 url-security-middleware
 
 **Real-Time URL Risk Analysis Middleware for Proxy Servers using Machine Learning + Rule-Based Detection**
 
@@ -6,14 +6,25 @@
 
 ---
 
+## 🧑‍💻 Contributors
+
+gaurav bhatt  
+shashank sharma  
+shubham negi
+
+---
+
 ## 🔐 Features
 
-- ✅ **URL Risk Scoring Engine** – Detects phishing, SQLi, XSS, redirection attacks, and encoded payloads.
-- 🔁 **Socket-Based Middleware Service** – Exposes a real-time interface for C/Node/Python proxy clients.
-- 🧠 **Explainable Threat Categorization** – Get scores, categories (`SAFE`, `MODERATE RISK`, `DANGEROUS`), and reasons.
-- 🔍 **Entropy + Regex + Pattern-Based Detection**
-- 🧪 CLI Testing Mode for Generated + Custom URLs
-- 📦 Ready for Integration with Future ONNX/CNN-LSTM Models
+- ✅ **Multi-class URL Risk Scoring:** Detects phishing, malware, defacement, edge-case, and invalid URLs (`not_a_url`).
+- 🧠 **CNN-LSTM Deep Learning Model:** Robust, explainable, and trained on real + synthetic data for high generalization.
+- 🔄 **API and CLI:** REST API via FastAPI (`main.py`) and CLI demo (`predict_url.py`).
+- 🧩 **Hybrid Detection:** Uses ML, allowlist, and pattern-based checks for maximum coverage.
+- 📊 **Explainable Output:** Shows top-2 class probabilities and explanations for each prediction.
+- 🗃️ **Logging:** All scans can be logged to a SQLite database (`url_logs.db`).
+- 🏗️ **Synthetic Data Generation:** Generates realistic and adversarial URLs for all classes, including edge cases and junk.
+- 📈 **Evaluation:** Outputs classification report and confusion matrix (PNG).
+- 🧪 **Automated Testing:** Includes scripts for API and prediction testing.
 
 ---
 
