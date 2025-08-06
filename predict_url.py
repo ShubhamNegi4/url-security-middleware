@@ -7,10 +7,10 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from urllib.parse import urlparse
 
 # 🔃 Load model and pre-processing tools
-model = tf.keras.models.load_model(r"c:/Users/bhatt/OneDrive/Documents/gggg/url-security-middleware/url-security-middleware/saved_models/url_cnn_lstm_model.keras")
-with open(r"c:/Users/bhatt/OneDrive/Documents/gggg/url-security-middleware/url-security-middleware/saved_models/tokenizer.pkl", "rb") as f:
+model = tf.keras.models.load_model(r"saved_models/url_cnn_lstm_model.keras")
+with open(r"saved_models/tokenizer.pkl", "rb") as f:
     tokenizer = pickle.load(f)
-with open(r"c:/Users/bhatt/OneDrive/Documents/gggg/url-security-middleware/url-security-middleware/saved_models/label_encoder.pkl", "rb") as f:
+with open(r"saved_models/label_encoder.pkl", "rb") as f:
     label_encoder = pickle.load(f)
 
 MAX_LEN = 200  # Must match training
@@ -59,8 +59,7 @@ def predict_url(url: str):
     if domain in allowlist and domain != "":
         return {
             "prediction": "benign",
-            "confidence": 1.0,
-            "secondary": None,
+            "score": 0,
             "explanation": "Trusted domain (allowlisted)."
         }
 
@@ -92,10 +91,22 @@ def predict_url(url: str):
     else:
         explanation = None
 
+    # Assign score based on prediction
+    if class1 == "not_a_url":
+        score = 1
+    elif class1 == "benign":
+        score = 0
+    else:
+        # Malicious/edge/other: score is proportional to confidence, but always at least 0.1
+        score = max(0.1, round(conf1, 2))
+
+    # result: 0 if benign, 1 otherwise
+    result_flag = 0 if class1 == "benign" else 1
+
     return {
         "prediction": class1,
-        "confidence": conf1,
-        "secondary": {"class": class2, "confidence": conf2},
+        "score": score,
+        "result": result_flag,
         "explanation": explanation
     }
 
@@ -107,9 +118,8 @@ if __name__ == "__main__":
         result = predict_url(url)
         if isinstance(result, dict):
             print(f"  Prediction      : {result['prediction'].upper()}")
-            print(f"  Confidence      : {result['confidence']:.2f}")
-            if result['secondary']:
-                print(f"  Runner-up Class : {result['secondary']['class'].upper()} (confidence: {result['secondary']['confidence']:.2f})")
+            print(f"  Score           : {result['score']}")
+            print(f"  Result          : {result['result']}")
             if result['explanation']:
                 print(f"  Explanation     : {result['explanation']}")
             print()
