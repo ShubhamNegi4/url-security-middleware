@@ -60,6 +60,7 @@ def predict_url(url: str):
         return {
             "prediction": "benign",
             "score": 0,
+            "result": 0,
             "explanation": "Trusted domain (allowlisted)."
         }
 
