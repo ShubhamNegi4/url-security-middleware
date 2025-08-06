@@ -103,10 +103,11 @@ def generate_not_a_url_samples(n=12000):
     return samples
 
 print("\n🔬 Generating robust synthetic samples for all classes...")
-benign_urls = generate_benign_urls(12000)
-malicious_urls = generate_malicious_urls(12000)
-edge_urls = generate_edge_case_urls(10000)
-not_a_url_samples = generate_not_a_url_samples(12000)
+# Generate a large, diverse, and challenging dataset for each class
+benign_urls = generate_benign_urls(15000)
+malicious_urls = generate_malicious_urls(15000)
+edge_urls = generate_edge_case_urls(12000)
+not_a_url_samples = generate_not_a_url_samples(15000)
 
 # Assign labels
 benign_df = pd.DataFrame({"url": benign_urls, "label": "benign"})
@@ -117,6 +118,13 @@ not_a_url_df = pd.DataFrame({"url": not_a_url_samples, "label": "not_a_url"})
 # Combine with real data
 frames = [df, benign_df, malicious_df, edge_df, not_a_url_df]
 df = pd.concat(frames, ignore_index=True)
+
+# Shuffle and balance dataset
+print(f"[INFO] Dataset shape before balancing: {df.shape}")
+min_count = min(df['label'].value_counts())
+balanced_df = df.groupby('label').sample(n=min_count, random_state=42).reset_index(drop=True)
+print(f"[INFO] Dataset shape after balancing: {balanced_df.shape}")
+df = balanced_df
 
 # Balance classes (downsample if needed)
 min_class_count = min(df["label"].value_counts())
@@ -141,10 +149,13 @@ sequences = tokenizer.texts_to_sequences(df["url"])
 X = pad_sequences(sequences, maxlen=MAX_LEN)
 y = df["label_encoded"].values
 
-# 🧪 Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
+# 🧪 Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.18, random_state=42, stratify=y)
 
-# 🧠 Build model (CNN + LSTM)
+# Class weights for balanced training
+class_weight_dict = dict(zip(np.unique(y_train), compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)))
+
+# Build model
 model = Sequential([
     Embedding(VOCAB_SIZE, EMBED_DIM),
     Conv1D(64, 5, activation='relu'),
@@ -152,53 +163,56 @@ model = Sequential([
     LSTM(64),
     Dense(64, activation='relu'),
     Dropout(0.5),
-    Dense(len(np.unique(y)), activation='softmax')  # Softmax for multi-class
+    Dense(len(np.unique(y)), activation='softmax')
 ])
 
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-model.summary()
 
-# 🛑 Early stopping
+# Early stopping
 early_stop = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
 
-# ⚖️ Compute class weights
-class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y_train), y=y_train)
-class_weight_dict = dict(enumerate(class_weights))
-
-# 🚀 Train model
+# Train
 print("\n🚀 Training model...")
-model.fit(
+history = model.fit(
     X_train, y_train,
     validation_data=(X_test, y_test),
-    epochs=2,
+    epochs=10,
     batch_size=128,
     callbacks=[early_stop],
     class_weight=class_weight_dict,
     verbose=1
 )
 
-# 📈 Evaluate model
-print("\n✅ Evaluating model on test set...")
-loss, acc = model.evaluate(X_test, y_test, verbose=0)
-print(f"\n✅ Test Accuracy: {acc:.4f}")
-
-# 📋 Classification report
+# Evaluate
+print("\n✅ Evaluating model...")
 y_pred_probs = model.predict(X_test)
 y_pred = np.argmax(y_pred_probs, axis=1)
 
-print("\n📋 Classification Report:")
+# Print class-wise accuracy
+from collections import Counter
+def classwise_accuracy(y_true, y_pred, labels):
+    accs = {}
+    for label in labels:
+        idx = (y_true == label)
+        acc = np.mean(y_pred[idx] == label)
+        accs[label] = acc
+    return accs
+labels = np.unique(y_test)
+accs = classwise_accuracy(y_test, y_pred, labels)
+print("\nClass-wise accuracy:")
+for label in labels:
+    print(f"  {label_encoder.inverse_transform([label])[0]}: {accs[label]*100:.2f}%")
+
 print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
 
-# --- Confusion Matrix Visualization ---
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
-
 cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
 disp.plot(xticks_rotation=45, cmap='Blues')
 plt.title("Confusion Matrix")
 plt.tight_layout()
-plt.savefig("confusion_matrix.png")  # Save as PNG
+plt.savefig("confusion_matrix.png")
 plt.show()
 
 # 💾 Save everything
