@@ -17,6 +17,10 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, Conv1D, MaxPooling1D, LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+
 # 📥 Load dataset
 print("📥 Loading dataset...")
 df = pd.read_csv("malicious_phish.csv")
@@ -205,8 +209,6 @@ for label in labels:
 
 print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
 
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
 cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
 disp.plot(xticks_rotation=45, cmap='Blues')
